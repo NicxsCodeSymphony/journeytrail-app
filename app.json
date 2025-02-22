@@ -24,7 +24,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.nicxs.JourneyTrailCommuter"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,6 +39,7 @@
         "origin": false
       },
       "eas": {
+        "projectId": "885d261d-662a-4b38-a410-617d02a9e7a4"
       }
     },
     "owner": "nicxs"
