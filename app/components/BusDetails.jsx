@@ -4,7 +4,22 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import WebView from 'react-native-webview';
 import getLocationDetails from '../utils/getCurrentPosition';
 
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI/180);
+    const dLon = (lon2 - lon1) * (Math.PI/180);
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * (Math.PI/180)) * Math.cos(lat2 * (Math.PI/180)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c;
+};
+
 const BusDetailsModal = ({ visible, onClose, selectedBus }) => {
+    console.log(selectedBus)
     const [currentLocation, setCurrentLocation] = useState(null);
 
     useEffect(() => {
@@ -19,6 +34,25 @@ const BusDetailsModal = ({ visible, onClose, selectedBus }) => {
 
         fetchCurrentLocation();
     }, [selectedBus]);
+
+    const calculateEstimatedArrivalTime = (fromLat, fromLon, toLat, toLon, averageSpeed = 40) => {
+        const distance = calculateDistance(fromLat, fromLon, toLat, toLon);
+        
+        if (!distance || distance <= 0) return 'At location';
+        
+        const timeInHours = distance / averageSpeed;
+        const timeInMinutes = Math.round(timeInHours * 60);
+
+        if (timeInMinutes >= 60) {
+            // Convert to decimal hours format
+            const decimalHours = (timeInMinutes / 60).toFixed(1);
+            return `${decimalHours} hrs`;
+        } else if (timeInMinutes > 1) {
+            return `${timeInMinutes} mins`;
+        } else {
+            return `${timeInMinutes} min`;
+        }
+    };
 
     const mapHTML = `
         <!DOCTYPE html>
@@ -77,21 +111,6 @@ const BusDetailsModal = ({ visible, onClose, selectedBus }) => {
             </body>
         </html>
     `;
-
-    const calculateEstimatedArrivalTime = (distance) => {
-        const averageSpeed = 40; // in km/h
-        const timeInHours = distance / averageSpeed;
-        const timeInMinutes = Math.round(timeInHours * 60);
-
-        const hours = Math.floor(timeInMinutes / 60);
-        const minutes = timeInMinutes % 60;
-
-        if (hours > 0) {
-            return `${hours} hr${hours > 1 ? 's' : ''} ${minutes} min${minutes > 1 ? 's' : ''}`;
-        } else {
-            return `${minutes} min${minutes > 1 ? 's' : ''}`;
-        }
-    };
 
     return (
         <Modal
@@ -163,16 +182,9 @@ const BusDetailsModal = ({ visible, onClose, selectedBus }) => {
                                 <View className="bg-gray-50 rounded-2xl p-4 mb-6">
                                     <View className="flex-row items-center mb-4">
                                         <Icon name="location-on" size={24} color="#4A5568" />
-                                        <Text className="text-lg font-semibold ml-2 text-gray-800">Current Location</Text>
-                                    </View>
-                                    <Text className="font-medium text-gray-800">{currentLocation || "Fetching current location..."}</Text>
-                                </View>
-                                <View className="bg-gray-50 rounded-2xl p-4 mb-6">
-                                    <View className="flex-row items-center mb-4">
-                                        <Icon name="location-on" size={24} color="#4A5568" />
                                         <Text className="text-lg font-semibold ml-2 text-gray-800">Next Stop</Text>
                                     </View>
-                                    <Text className="font-medium text-gray-800">{selectedBus.to_place}</Text>
+                                    <Text className="font-medium text-gray-800">{selectedBus.to_route}</Text>
                                 </View>
                                 <View className="flex-row flex-wrap justify-between mb-4">
                                     <View className="w-[30%] bg-gray-50 p-4 rounded-xl mb-4">
@@ -186,14 +198,24 @@ const BusDetailsModal = ({ visible, onClose, selectedBus }) => {
                                         <Icon name="straighten" size={24} color="#4A5568" className="mb-2" />
                                         <Text className="text-gray-500 mb-1">Distance</Text>
                                         <Text className="text-xl font-bold text-gray-800">
-                                            {selectedBus.distance?.toFixed(1)} km
+                                            {Math.round(calculateDistance(
+                                                selectedBus.from_latitude,
+                                                selectedBus.from_longitude,
+                                                selectedBus.to_latitude,
+                                                selectedBus.to_longitude
+                                            ))} km
                                         </Text>
                                     </View>
                                     <View className="w-[30%] bg-gray-50 p-4 rounded-xl mb-4">
                                         <Icon name="access-time" size={24} color="#4A5568" className="mb-2" />
                                         <Text className="text-gray-500 mb-1">ETA</Text>
                                         <Text className="text-xl font-bold text-gray-800">
-                                            {calculateEstimatedArrivalTime(selectedBus.distance)}
+                                            {calculateEstimatedArrivalTime(
+                                                selectedBus.from_latitude,
+                                                selectedBus.from_longitude,
+                                                selectedBus.to_latitude,
+                                                selectedBus.to_longitude
+                                            )}
                                         </Text>
                                     </View>
                                 </View>
